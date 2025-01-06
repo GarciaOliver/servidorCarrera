@@ -1,12 +1,21 @@
 //PROTOCOLO DE INTERCAMBIO
 const express = require('express');
 const app = express();
-const cors = require('cors');
-app.use(cors({ origin: '*' }));
 app.use(express.json());
-
+app.use((req, res, next) => {
+    res.header('Access-Control-Allow-Origin', '*'); 
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE'); 
+    res.header('Access-Control-Allow-Headers', 'Content-Type'); 
+    if (req.method === 'OPTIONS') { 
+        res.sendStatus(200); 
+        // Responder con estado 200 (OK) para solicitudes de preflight 
+    } else { 
+        next(); 
+    }
+});
 
 app.all('/carrera', (req, res) => {
+    
     const body=req.body;
     let distancia=parseInt(body.distancia);
     let corredores=parseInt(body.corredores);

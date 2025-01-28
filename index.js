@@ -2,71 +2,54 @@
 const express = require('express');
 const app = express();
 app.use(express.json());
-app.use((req, res, next) => {
-    res.header('Access-Control-Allow-Origin', '*'); 
-    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE'); 
-    res.header('Access-Control-Allow-Headers', 'Content-Type'); 
-    if (req.method === 'OPTIONS') { 
-        res.sendStatus(200); 
-        // Responder con estado 200 (OK) para solicitudes de preflight 
-    } else { 
-        next(); 
-    }
-});
+
+let carrera = {
+    estado: "No iniciada",
+    participantes: [],
+    ganador: null
+};
 
 app.all('/carrera', (req, res) => {
-    
-    const body=req.body;
-    let distancia=parseInt(body.distancia);
-    let corredores=parseInt(body.corredores);
+    switch (req.method) {
+        case 'GET':
+            res.status(200).json(carrera);
+            break;
 
-    if (isNaN(distancia) || isNaN(corredores) || distancia < 100 || distancia > 400 || corredores <= 1) {
-        return res.status(400).send('Por favor, ingrese valores válidos para la distancia y el número de corredores.');
-    }
-    
-    let corredoresData = [];
-    for (let i = 1; i <= corredores; i++) {
-        let velocidad = Math.random() * (40 - 25) + 25; // Velocidad
-        corredoresData.push({ id: i, velocidad: velocidad, posicion: 0 });
-    }
-
-    let tiempo = 0;
-    let carrera = true;
-    let historial = [];
-    let ganador = null;
-
-    while (carrera) {
-        let estadoActual = { tiempo: tiempo, posiciones: [] };
-
-        for (let i = 0; i < corredoresData.length; i++) { //Datos de la carrera y ganador
-            corredoresData[i].posicion += corredoresData[i].velocidad;
-            if (corredoresData[i].posicion >= distancia) {
-                carrera = false;
-
-                ganador = corredoresData[0];
-                for (let i = 1; i < corredoresData.length; i++) {
-                    if (corredoresData[i].velocidad > ganador.velocidad) {
-                        ganador = corredoresData[i];
-                    }
-                }
+        case 'POST':
+            // Iniciar la carrera
+            if (carrera.estado === "No iniciada") {
+                carrera.estado = "En progreso";
+                carrera.participantes = req.body.participantes || [];
+                res.status(201).json({ mensaje: "Carrera iniciada", carrera });
+            } else {
+                res.status(400).json({ mensaje: "La carrera ya ha comenzado" });
             }
-            estadoActual.posiciones.push({ id: corredoresData[i].id, posicion: corredoresData[i].posicion.toFixed(2) }); //Transforma a 2 decimales
-        }
-        tiempo++;
-        historial.push({ estadoActual });
-    }
+            break;
 
-    res.json({
-        mensaje: 'Simulación de la carrera completada.',
-        distancia: distancia,
-        corredores: corredores,
-        historial: historial,
-        ganador: {
-            id: ganador.id,
-            posicion: ganador.posicion.toFixed(2),
-            velocidad: ganador.velocidad.toFixed(2)
-        }
-    });
+        case 'PUT':
+            // Actualizar el estado de la carrera
+            if (carrera.estado === "En progreso") {
+                carrera.estado = "Finalizada";
+                carrera.ganador = req.body.ganador || null;
+                res.status(200).json({ mensaje: "Carrera finalizada", carrera });
+            } else {
+                res.status(400).json({ mensaje: "La carrera no está en progreso" });
+            }
+            break;
+
+        case 'DELETE':
+            // Reiniciar la carrera
+            carrera = {
+                estado: "No iniciada",
+                participantes: [],
+                ganador: null
+            };
+            res.status(200).json({ mensaje: "Carrera reiniciada", carrera });
+            break;
+
+        default:
+            res.status(405).json({ mensaje: "Método no permitido" });
+    }
 });
 
 //llamada al puerto por defecto de node 3000
